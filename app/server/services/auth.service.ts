@@ -176,7 +176,8 @@ export class AuthService {
       return null;
     }
 
-    const userId = parseInt(payload.sub);
+    // PERUBAHAN: gunakan payload.sub langsung sebagai string UUID
+    const userId = payload.sub;
 
     // Cek apakah token ada di database dan belum direvoke
     const storedToken = await db.query.refreshTokens.findFirst({
@@ -214,7 +215,8 @@ export class AuthService {
       throw new Error("Invalid refresh token");
     }
 
-    const userId = parseInt(payload.sub);
+    // PERUBAHAN: gunakan payload.sub langsung sebagai string UUID
+    const userId = payload.sub;
 
     // Check apakah token ada di database dan belum direvoke
     const storedToken = await db.query.refreshTokens.findFirst({
@@ -290,7 +292,8 @@ export class AuthService {
       return null;
     }
 
-    const userId = parseInt(payload.sub);
+    // PERUBAHAN: gunakan payload.sub langsung sebagai string UUID
+    const userId = payload.sub;
 
     // Get user data
     const user = await db.query.users.findFirst({
@@ -318,7 +321,7 @@ export class AuthService {
   }
 
   // Revoke all refresh tokens for user
-  static async revokeAllUserRefreshTokens(userId: number): Promise<boolean> {
+  static async revokeAllUserRefreshTokens(userId: string): Promise<boolean> {
     const result = await db
       .update(refreshTokens)
       .set({ isRevoked: true })

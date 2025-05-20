@@ -122,7 +122,7 @@ export class OAuthService {
     return oauthAccount?.user || null;
   }
 
-  static async revokeOAuthTokens(userId: number) {
+  static async revokeOAuthTokens(userId: string) {
     try {
       // Fetch all OAuth accounts for the user
       const userOAuthAccounts = await db.query.oauthAccounts.findMany({

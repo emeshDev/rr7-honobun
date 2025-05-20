@@ -8,6 +8,8 @@ import {
   integer,
   pgEnum,
   boolean,
+  uuid,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -23,26 +25,30 @@ export const oauthProviderEnum = pgEnum("oauth_provider", [
 ]);
 
 // Tabel users dengan id serial, ditambah kolom verifikasi email
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  email: varchar("email", { length: 255 }).notNull().unique(),
-  passwordHash: varchar("password_hash", { length: 255 }).notNull(),
-  firstName: varchar("first_name", { length: 100 }),
-  lastName: varchar("last_name", { length: 100 }),
-  role: roleEnum("role").default("user").notNull(),
-  isVerified: boolean("is_verified").default(false).notNull(),
-  verificationToken: varchar("verification_token", { length: 255 }),
-  verificationTokenExpiry: timestamp("verification_token_expiry"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+export const users = pgTable(
+  "users",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    email: varchar("email", { length: 255 }).notNull().unique(),
+    passwordHash: varchar("password_hash", { length: 255 }).notNull(),
+    firstName: varchar("first_name", { length: 100 }),
+    lastName: varchar("last_name", { length: 100 }),
+    role: roleEnum("role").default("user").notNull(),
+    isVerified: boolean("is_verified").default(false).notNull(),
+    verificationToken: varchar("verification_token", { length: 255 }),
+    verificationTokenExpiry: timestamp("verification_token_expiry"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [uniqueIndex("email_idx").on(t.email)]
+);
 
 // Tabel refresh_tokens tetap menggunakan integer untuk userId
 export const refreshTokens = pgTable("refresh_tokens", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
+  userId: uuid("user_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
   token: text("token").notNull().unique(),
   expiresAt: timestamp("expires_at").notNull(),
   isRevoked: boolean("is_revoked").default(false).notNull(),
@@ -55,9 +61,9 @@ export const refreshTokens = pgTable("refresh_tokens", {
 // Tabel baru untuk verifikasi email, juga menggunakan integer untuk userId
 export const emailVerifications = pgTable("email_verifications", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
+  userId: uuid("user_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
   token: varchar("token", { length: 255 }).notNull(),
   expiresAt: timestamp("expires_at").notNull(),
   isUsed: boolean("is_used").default(false).notNull(),
@@ -67,9 +73,9 @@ export const emailVerifications = pgTable("email_verifications", {
 // Tabel baru untuk oauth accounts
 export const oauthAccounts = pgTable("oauth_accounts", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
+  userId: uuid("user_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
   provider: oauthProviderEnum("provider").notNull(),
   providerId: varchar("provider_id", { length: 255 }).notNull(),
   accessToken: text("access_token"),
@@ -82,9 +88,9 @@ export const oauthAccounts = pgTable("oauth_accounts", {
 
 export const todos = pgTable("todos", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
+  userId: uuid("user_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
   title: text("title").notNull(),
   description: text("description"),
   completed: boolean("completed").default(false).notNull(),
