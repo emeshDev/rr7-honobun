@@ -273,6 +273,9 @@ export const authRateLimiter = rateLimit({
 export const setupMemoryRateLimitMiddleware = (app: Hono) => {
   // Apply strict rate limiting to authentication endpoints
   app.use("/api/auth/login", authRateLimiter);
+  app.use("/api/auth/register", authRateLimiter);
+  app.use("/api/auth/verify-email", authRateLimiter);
+  app.use("/api/auth/logout", authRateLimiter);
 
   // You can add more rate limits for other sensitive endpoints here
   // Examples:

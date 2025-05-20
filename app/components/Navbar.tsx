@@ -1,7 +1,7 @@
 // components/Navbar.tsx - Ultra Safe Version
-import React from "react";
+import React, { useState } from "react";
 import { Link, useLocation } from "react-router";
-import NavLink from "./NavLink"; // Import komponen NavLink yang baru
+import NavLink from "./NavLink";
 import type { User } from "~/db/schema";
 
 type NavbarProps = {
@@ -20,6 +20,7 @@ export default function Navbar({
   dataSource,
 }: NavbarProps) {
   const location = useLocation();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Use ref to prevent multiple logout attempts
   const logoutInProgressRef = React.useRef(false);
@@ -78,7 +79,9 @@ export default function Navbar({
               <NavLink to="/dashboard/todos">Todos (Protected)</NavLink>
 
               {/* Menggunakan NavLink untuk Dashboard */}
-              <NavLink to="/dashboard">Dashboard</NavLink>
+              <NavLink to="/dashboard" exact>
+                Dashboard
+              </NavLink>
             </div>
           </div>
 
@@ -110,14 +113,93 @@ export default function Navbar({
 
           {/* Mobile menu button */}
           <div className="flex items-center sm:hidden">
-            <Link
-              to={isAuthenticated ? "/profile" : "/login"}
-              className="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white"
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 p-2"
             >
-              {isAuthenticated ? "Account" : "Login"}
-            </Link>
+              <svg
+                className="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth="1.5"
+                stroke="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d={
+                    mobileMenuOpen
+                      ? "M6 18L18 6M6 6l12 12"
+                      : "M4 6h16M4 12h16M4 18h16"
+                  }
+                />
+              </svg>
+            </button>
           </div>
         </div>
+
+        {/* Mobile menu, show/hide based on menu state */}
+        {mobileMenuOpen && (
+          <div className="sm:hidden pb-3">
+            <div className="space-y-1 pt-2 pb-3">
+              <Link
+                to="/"
+                className={`block px-3 py-2 rounded-md text-base font-medium ${
+                  location.pathname === "/"
+                    ? "bg-indigo-50 text-indigo-700 border-l-4 border-indigo-500"
+                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                }`}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Home
+              </Link>
+              <Link
+                to="/dashboard"
+                className={`block px-3 py-2 rounded-md text-base font-medium ${
+                  location.pathname === "/dashboard"
+                    ? "bg-indigo-50 text-indigo-700 border-l-4 border-indigo-500"
+                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                }`}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Dashboard
+              </Link>
+              <Link
+                to="/dashboard/todos"
+                className={`block px-3 py-2 rounded-md text-base font-medium ${
+                  location.pathname === "/dashboard/todos"
+                    ? "bg-indigo-50 text-indigo-700 border-l-4 border-indigo-500"
+                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                }`}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Todos (Protected)
+              </Link>
+
+              {isAuthenticated ? (
+                <button
+                  onClick={(e) => {
+                    handleLogout(e);
+                    setMobileMenuOpen(false);
+                  }}
+                  className="w-full text-left px-3 py-2 rounded-md text-base font-medium text-red-600 hover:bg-red-50"
+                >
+                  Logout
+                </button>
+              ) : (
+                <Link
+                  to="/login"
+                  className="block px-3 py-2 rounded-md text-base font-medium text-indigo-600 hover:bg-indigo-50"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Login
+                </Link>
+              )}
+            </div>
+          </div>
+        )}
+
         {process.env.NODE_ENV === "development" && dataSource && (
           <span className="absolute top-1 right-1 text-xs px-1 py-0.5 bg-gray-200 rounded">
             Data: {dataSource}

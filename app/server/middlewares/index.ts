@@ -7,7 +7,7 @@ import { setupCsrfMiddleware } from "./csrfMiddleware";
 import { setupSecureHeadersMiddleware } from "./secureHeadersMiddleware";
 import { setupGoogleOAuthMiddleware } from "./googleOAuthMiddleware";
 import { setupGoogleOAuthDebug } from "./googleOAuthDebugMiddleware";
-import { setupRateLimitMiddleware } from "./rateLimitMiddleware";
+// import { setupRateLimitMiddleware } from "./rateLimitMiddleware";
 import { setupMemoryRateLimitMiddleware } from "./memoryRateLimitMiddleware";
 
 export const setupMiddlewares = (app: Hono) => {

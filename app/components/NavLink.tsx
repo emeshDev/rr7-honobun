@@ -26,7 +26,8 @@ export default function NavLink({
   // Logika untuk menentukan active state
   const isActive = exact
     ? location.pathname === to // Exact match
-    : location.pathname.startsWith(to); // Prefix match
+    : location.pathname === to ||
+      (location.pathname.startsWith(to) && to !== "/"); // Fixed path matching
 
   // Base class yang selalu digunakan
   const baseClass = "inline-flex items-center px-1 pt-1 text-sm font-medium";

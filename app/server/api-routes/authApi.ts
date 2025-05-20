@@ -304,7 +304,7 @@ export const setupAuthApiRoutes = (app: Hono) => {
   app.post("/api/auth/logout", async (c) => {
     try {
       const refreshToken = await getAuthSignedCookie(c, "refresh_token");
-      let userId: number | null = null;
+      let userId: string | null = null;
 
       if (refreshToken !== false) {
         // Get the user ID from the refresh token if possible
