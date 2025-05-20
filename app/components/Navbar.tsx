@@ -74,11 +74,8 @@ export default function Navbar({
                 Home
               </NavLink>
 
-              {/* Menggunakan NavLink untuk About */}
-              <NavLink to="/about">About (Protected)</NavLink>
-
               {/* Menggunakan NavLink untuk Todos */}
-              <NavLink to="/todos">Todos (Protected)</NavLink>
+              <NavLink to="/dashboard/todos">Todos (Protected)</NavLink>
 
               {/* Menggunakan NavLink untuk Dashboard */}
               <NavLink to="/dashboard">Dashboard</NavLink>

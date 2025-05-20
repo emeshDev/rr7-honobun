@@ -1,11 +1,11 @@
-// routes/about/index.tsx
+// routes/dashboard/index.tsx
 import { useRouteLoaderData } from "react-router";
 import type { LayoutLoaderData } from "./layout";
 
-export default function About() {
+export default function Dashboard() {
   // Get user from parent layout's loader data using useRouteLoaderData
   const { user, source } = useRouteLoaderData(
-    "aboutLayout"
+    "DashboardLayout"
   ) as LayoutLoaderData;
 
   if (!user) {
@@ -29,7 +29,7 @@ export default function About() {
           {/* Main content */}
           <div className="px-6 py-8 sm:px-8">
             <div className="prose max-w-none">
-              <h2>Welcome to the About Page</h2>
+              <h2>Welcome to the Dashboard Page</h2>
               <p className="text-lg">
                 This is a protected page that requires authentication. You are
                 logged in as <strong>{user.email}</strong>.

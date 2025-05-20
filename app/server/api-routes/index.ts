@@ -1,8 +1,6 @@
 // app/server/api-routes/index.ts
 import type { Hono } from "hono";
 
-import { setupUserApiRoutes } from "./userApi";
-import { setupProductApiRoutes } from "./productApi";
 import { setupAuthApiRoutes } from "./authApi";
 import { setupTodoApiRoutes } from "./todoApi";
 
@@ -32,11 +30,11 @@ export const setupApiRoutes = (app: Hono) => {
   // Setup Auth API routes
   setupAuthApiRoutes(app);
 
-  // Setup User API routes
-  setupUserApiRoutes(app);
+  // // Setup User API routes
+  // setupUserApiRoutes(app);
 
-  // Setup Product API routes
-  setupProductApiRoutes(app);
+  // // Setup Product API routes
+  // setupProductApiRoutes(app);
 
   // Setup Todos API Routes
   setupTodoApiRoutes(app);

@@ -1,8 +1,8 @@
 import type { Context } from "hono";
-import { AuthController } from "../controllers/authController";
+import { RegistrationController } from "../controllers/authController";
 
 // Adapter functions for controllers to make them more usable in React Router
-const authContext = {
+const registrationContext = {
   register: async (userData: {
     email: string;
     password: string;
@@ -16,7 +16,7 @@ const authContext = {
       },
     } as unknown as Context;
 
-    return await AuthController.register(mockContext);
+    return await RegistrationController.register(mockContext);
   },
 
   verifyEmail: async (token: string) => {
@@ -27,7 +27,7 @@ const authContext = {
       },
     } as unknown as Context;
 
-    return await AuthController.verifyEmail(mockContext);
+    return await RegistrationController.verifyEmail(mockContext);
   },
 
   resendVerification: async (email: string) => {
@@ -38,8 +38,8 @@ const authContext = {
       },
     } as unknown as Context;
 
-    return await AuthController.resendVerification(mockContext);
+    return await RegistrationController.resendVerification(mockContext);
   },
 };
 
-export default authContext;
+export default registrationContext;

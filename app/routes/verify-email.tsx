@@ -26,7 +26,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     console.log("[Verify Email Loader] Verifying token:", token);
 
     // Use AppLoadContext to directly call the verification controller
-    const result = await context.authControllers.verifyEmail(token);
+    const result = await context.registrationControllers.verifyEmail(token);
 
     // Return the result for client-side rendering
     return {

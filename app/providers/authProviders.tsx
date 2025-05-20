@@ -87,7 +87,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [refreshErrors, setRefreshErrors] = useState(0);
 
   // Get server auth data from root loader if available
-  const rootData = useRouteLoaderData("aboutLayout");
+  const rootData = useRouteLoaderData("DashboardLayout");
   const serverAuth = rootData?.auth;
 
   // Redux selectors

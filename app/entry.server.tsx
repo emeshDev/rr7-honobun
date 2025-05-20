@@ -12,7 +12,6 @@ import {
 } from "./store/api";
 import { Provider } from "react-redux";
 import { syncServerAuth } from "./store/authSlice";
-import { getRoutePrefetchConfig } from "./utils/routeUtils";
 import { isProtectedRoute } from "./utils/routeAuth";
 
 export default async function handleRequest(
@@ -107,85 +106,85 @@ export default async function handleRequest(
   }
 
   // Pre-fetch data for certain routes - TETAP MENGGUNAKAN routeUtils.ts
-  try {
-    console.log(`[Server] Analyzing route for prefetch: ${url.pathname}`);
+  // try {
+  //   console.log(`[Server] Analyzing route for prefetch: ${url.pathname}`);
 
-    // Get prefetch configuration for this route - MENGGUNAKAN FUNGSI DARI routeUtils.ts
-    const prefetchConfig = getRoutePrefetchConfig(url.pathname);
+  //   // Get prefetch configuration for this route - MENGGUNAKAN FUNGSI DARI routeUtils.ts
+  //   const prefetchConfig = getRoutePrefetchConfig(url.pathname);
 
-    // Check if we should prefetch for this route
-    if (!prefetchConfig.shouldPrefetch) {
-      console.log(
-        `[Server] No prefetch needed: ${
-          prefetchConfig.description || prefetchConfig.reason
-        }`
-      );
-    } else {
-      // Prepare query options
-      const queryOptions: CustomStartQueryOptions = {
-        subscribe: false,
-        forceRefetch: true,
-        extra: {
-          origin: clientOrigin || undefined,
-          userAgent: userAgent || undefined,
-        },
-      };
+  //   // Check if we should prefetch for this route
+  //   if (!prefetchConfig.shouldPrefetch) {
+  //     console.log(
+  //       `[Server] No prefetch needed: ${
+  //         prefetchConfig.description || prefetchConfig.reason
+  //       }`
+  //     );
+  //   } else {
+  //     // Prepare query options
+  //     const queryOptions: CustomStartQueryOptions = {
+  //       subscribe: false,
+  //       forceRefetch: true,
+  //       extra: {
+  //         origin: clientOrigin || undefined,
+  //         userAgent: userAgent || undefined,
+  //       },
+  //     };
 
-      console.log(
-        `[Server] Prefetching for: ${prefetchConfig.description} (${url.pathname})`
-      );
+  //     console.log(
+  //       `[Server] Prefetching for: ${prefetchConfig.description} (${url.pathname})`
+  //     );
 
-      // Dispatch the appropriate query based on endpoint from config
-      if (prefetchConfig.endpoint === "getUsers") {
-        console.log("[Server] Dispatching getUsers query");
-        store.dispatch(
-          api.endpoints.getUsers.initiate(undefined, queryOptions)
-        );
-      } else if (
-        prefetchConfig.endpoint === "getUserById" &&
-        typeof prefetchConfig.params === "number"
-      ) {
-        console.log(
-          `[Server] Dispatching getUserById query for id: ${prefetchConfig.params}`
-        );
-        store.dispatch(
-          api.endpoints.getUserById.initiate(
-            prefetchConfig.params,
-            queryOptions
-          )
-        );
-      }
+  //     // Dispatch the appropriate query based on endpoint from config
+  //     if (prefetchConfig.endpoint === "getUsers") {
+  //       console.log("[Server] Dispatching getUsers query");
+  //       store.dispatch(
+  //         api.endpoints.getUsers.initiate(undefined, queryOptions)
+  //       );
+  //     } else if (
+  //       prefetchConfig.endpoint === "getUserById" &&
+  //       typeof prefetchConfig.params === "number"
+  //     ) {
+  //       console.log(
+  //         `[Server] Dispatching getUserById query for id: ${prefetchConfig.params}`
+  //       );
+  //       store.dispatch(
+  //         api.endpoints.getUserById.initiate(
+  //           prefetchConfig.params,
+  //           queryOptions
+  //         )
+  //       );
+  //     }
 
-      // Wait for queries to complete
-      console.log("[Server] Waiting for all queries to complete...");
-      try {
-        const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Query timeout")), 3000)
-        );
+  //     // Wait for queries to complete
+  //     console.log("[Server] Waiting for all queries to complete...");
+  //     try {
+  //       const timeoutPromise = new Promise((_, reject) =>
+  //         setTimeout(() => reject(new Error("Query timeout")), 3000)
+  //       );
 
-        await Promise.race([
-          Promise.all(store.dispatch(getRunningQueriesThunk())),
-          timeoutPromise,
-        ]);
+  //       await Promise.race([
+  //         Promise.all(store.dispatch(getRunningQueriesThunk())),
+  //         timeoutPromise,
+  //       ]);
 
-        // Debug: Log state after prefetch
-        if (process.env.NODE_ENV === "development") {
-          const apiState = store.getState()[api.reducerPath];
-          const queryCount = Object.keys(apiState?.queries || {}).length;
-          console.log(
-            `[Server] RTK Query state after prefetch: ${queryCount} queries`
-          );
-        }
+  //       // Debug: Log state after prefetch
+  //       if (process.env.NODE_ENV === "development") {
+  //         const apiState = store.getState()[api.reducerPath];
+  //         const queryCount = Object.keys(apiState?.queries || {}).length;
+  //         console.log(
+  //           `[Server] RTK Query state after prefetch: ${queryCount} queries`
+  //         );
+  //       }
 
-        console.log("[Server] All queries completed successfully");
-      } catch (queryError) {
-        console.warn("[Server] Query timeout or error:", queryError);
-      }
-    }
-  } catch (prefetchError) {
-    console.error("[Server] Prefetch error:", prefetchError);
-    // Continue rendering even if prefetch fails
-  }
+  //       console.log("[Server] All queries completed successfully");
+  //     } catch (queryError) {
+  //       console.warn("[Server] Query timeout or error:", queryError);
+  //     }
+  //   }
+  // } catch (prefetchError) {
+  //   console.error("[Server] Prefetch error:", prefetchError);
+  //   // Continue rendering even if prefetch fails
+  // }
 
   // IMPROVEMENT 4: Improved error handling for renderToReadableStream
   try {

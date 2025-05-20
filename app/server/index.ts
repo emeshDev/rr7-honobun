@@ -3,13 +3,11 @@ import { createHonoServer } from "react-router-hono-server/bun";
 
 import { setupMiddlewares } from "./middlewares";
 import { setupApiRoutes } from "./api-routes";
-import { UserModel } from "./models/userModel";
-import type { User2 } from "types/server";
 import type { AppVariables } from "./types";
 import type { Todo, User } from "~/db/schema";
 import { getCurrentUserController } from "./controllers/getCurrentUser.controller";
-import authContext from "./context/authContext";
 import createTodoContext from "./context/todoContext";
+import registrationContext from "./context/authContext";
 
 // Definisi tipe untuk objek auth
 interface AuthInfo {
@@ -24,13 +22,11 @@ declare module "react-router" {
       environment: string;
       timestamp: string;
     };
-    getAllUser: () => Promise<User2[]>;
-    getUser: (id: number) => Promise<User2>;
     isAuthenticated: () => Promise<boolean>;
     getCurrentUser: () => Promise<Omit<User, "passwordHash"> | null>;
     auth: AuthInfo;
     // Auth controllers for React Router - simplified method signatures untuk kemudahan penggunaan
-    authControllers: {
+    registrationControllers: {
       register: (userData: {
         email: string;
         password: string;
@@ -149,17 +145,6 @@ export default await createHonoServer({
         environment: process.env.NODE_ENV || "development",
         timestamp: new Date().toISOString(),
       },
-      // Ada 2 cara : langsung dari Model atau dari API (melalui fetch URL)
-      getAllUser: async () => {
-        return UserModel.findAll();
-      },
-      getUser: async (id: number) => {
-        const res = await fetch(`${process.env.BASE_URL}/api/users/${id}`);
-        if (!res.ok) {
-          throw new Error(`API Error: ${res.status}`);
-        }
-        return res.json();
-      },
       isAuthenticated: async () => {
         return getCurrentUserController.isAuthenticated(c);
       },
@@ -170,7 +155,7 @@ export default await createHonoServer({
       auth: authInfo,
 
       // Auth Controllers
-      authControllers: authContext,
+      registrationControllers: registrationContext,
       todoControllers: createTodoContext(c),
     };
   },

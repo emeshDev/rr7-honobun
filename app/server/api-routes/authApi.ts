@@ -15,8 +15,8 @@ import {
 import { setCookie, deleteCookie } from "hono/cookie";
 import { db } from "~/db";
 import { users } from "~/db/schema";
-import { AuthController } from "../controllers/authController";
 import { OAuthService } from "../services/oauth.service";
+import { RegistrationController } from "../controllers/authController";
 
 // Define schemas separately
 const loginSchema = z.object({
@@ -131,7 +131,7 @@ export const setupAuthApiRoutes = (app: Hono) => {
           expiresAt: new Date(accessTokenExpiresIn).toISOString(),
         });
       } catch (error) {
-        // Check if error is about unverified email
+        // Check if error is dashboard unverified email
         if (
           error instanceof Error &&
           error.message.includes("Email not verified")
@@ -247,18 +247,18 @@ export const setupAuthApiRoutes = (app: Hono) => {
     "/api/auth/register",
     zValidator("json", registerSchema),
     async (c) => {
-      return c.json(await AuthController.register(c));
+      return c.json(await RegistrationController.register(c));
     }
   );
 
   // Email verification route - using AuthController
   app.get("/api/auth/verify-email", async (c) => {
-    return c.json(await AuthController.verifyEmail(c));
+    return c.json(await RegistrationController.verifyEmail(c));
   });
 
   // Resend verification email route - using AuthController
   app.post("/api/auth/resend-verification", async (c) => {
-    return c.json(await AuthController.resendVerification(c));
+    return c.json(await RegistrationController.resendVerification(c));
   });
 
   // Check email verification status

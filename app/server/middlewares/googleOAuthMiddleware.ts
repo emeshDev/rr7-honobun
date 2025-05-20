@@ -140,7 +140,9 @@ export const setupGoogleOAuthMiddleware = (app: Hono) => {
         // Here we can redirect to frontend route
         const APP_URL =
           process.env.APP_URL || "https://rr7honobun.emeshdev.com";
-        const redirectTo = isNewUser ? `${APP_URL}/about` : `${APP_URL}/about`;
+        const redirectTo = isNewUser
+          ? `${APP_URL}/dashboard`
+          : `${APP_URL}/dashboard`;
 
         console.log(`[Google OAuth] Redirecting to: ${redirectTo}`);
         return c.redirect(redirectTo);

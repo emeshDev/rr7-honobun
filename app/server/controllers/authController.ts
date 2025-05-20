@@ -24,7 +24,7 @@ const registerSchema = z.object({
   role: z.enum(["super_admin", "admin", "user"]).optional().default("user"),
 });
 
-export class AuthController {
+export class RegistrationController {
   /**
    * User registration controller
    * Used in API endpoint and can also be accessed from React Router context

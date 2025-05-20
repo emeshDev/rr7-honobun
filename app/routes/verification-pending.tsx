@@ -20,15 +20,15 @@ type ActionData = {
 // Loader for redirection handling
 export async function loader({ request, context }: Route.LoaderArgs) {
   try {
-    // If user is already authenticated and verified, redirect to about page
+    // If user is already authenticated and verified, redirect to dashboard page
     const isAuthenticated = await context.isAuthenticated();
     if (isAuthenticated) {
       // Get current user to check verification status
       const user = await context.getCurrentUser();
 
-      // If user is authenticated and verified, redirect to about page
+      // If user is authenticated and verified, redirect to dashboard page
       if (user?.isVerified) {
-        return redirect("/about");
+        return redirect("/dashboard");
       }
 
       // If authenticated but not verified, allow access to this page
@@ -68,7 +68,9 @@ export async function action({ request, context }: Route.ActionArgs) {
     );
 
     // Use context.authControllers to resend verification email
-    const result = await context.authControllers.resendVerification(email);
+    const result = await context.registrationControllers.resendVerification(
+      email
+    );
 
     return {
       success: result.success,

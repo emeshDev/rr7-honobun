@@ -48,9 +48,9 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     const isAuthenticated = await context.isAuthenticated();
     if (isAuthenticated) {
       console.log(
-        "[Register Loader] User already authenticated, redirecting to about page"
+        "[Register Loader] User already authenticated, redirecting to dashboard page"
       );
-      return redirect("/about");
+      return redirect("/dashboard");
     }
     // Not authenticated, show register page
     return null;
@@ -90,7 +90,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 
     // Use context.authControllers.register from AppLoadContext
     // This directly calls the server controller without a fetch
-    const result = await context.authControllers.register({
+    const result = await context.registrationControllers.register({
       email,
       password,
       firstName: firstName || undefined,

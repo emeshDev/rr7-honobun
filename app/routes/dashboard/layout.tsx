@@ -1,4 +1,4 @@
-// routes/about/layout.tsx
+// routes/dashboard/layout.tsx
 import { useEffect } from "react";
 import {
   Outlet,
@@ -9,7 +9,6 @@ import {
 } from "react-router";
 import Navbar from "~/components/Navbar";
 
-import type { Route } from "./+types/layout";
 import { useAuth } from "~/providers/authProviders";
 import { useDispatch } from "react-redux";
 import { resetLogoutProcess } from "~/store/authSlice";
@@ -17,13 +16,14 @@ import {
   createClientAuthLoader,
   type AuthLoaderData,
 } from "~/utils/authLoaders";
+import type { Route } from "./+types/layout";
 
 // Type for loader data
 export type LayoutLoaderData = AuthLoaderData;
 
 // Server-side loader - handles auth check and redirects
 export async function loader({ request, context }: Route.LoaderArgs) {
-  console.log("[AboutLayout Loader] Server-side authentication check");
+  console.log("[DashboardLayout Loader] Server-side authentication check");
 
   try {
     // Check if user is authenticated
@@ -34,7 +34,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       const user = await context.getCurrentUser();
 
       if (user) {
-        console.log("[AboutLayout Loader] User authenticated:", user.email);
+        console.log("[DashboardLayout Loader] User authenticated:", user.email);
         return {
           user,
           isAuthenticated: true,
@@ -46,13 +46,13 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 
     // If not authenticated, redirect to login
     console.log(
-      "[AboutLayout Loader] User not authenticated, redirecting to login"
+      "[DashboardLayout Loader] User not authenticated, redirecting to login"
     );
     const params = new URLSearchParams();
     params.set("redirectTo", new URL(request.url).pathname);
     return redirect(`/login?${params.toString()}`);
   } catch (error) {
-    console.error("[AboutLayout Loader] Server error:", error);
+    console.error("[DashboardLayout Loader] Server error:", error);
     // On error, redirect to login
     const params = new URLSearchParams();
     params.set("redirectTo", new URL(request.url).pathname);
@@ -66,7 +66,7 @@ export async function clientLoader({
   serverLoader,
 }: Route.ClientLoaderArgs) {
   // Gunakan createClientAuthLoader untuk menyederhanakan kode
-  return createClientAuthLoader("AboutLayout", async () => {
+  return createClientAuthLoader("DashboardLayout", async () => {
     // Type cast serverLoader result
     return (await serverLoader()) as AuthLoaderData;
   });
@@ -138,7 +138,7 @@ export default function Layout() {
   useEffect(() => {
     // Don't reset if on login page
     if (location.pathname !== "/login" && !isLoggingOut) {
-      console.log("[AboutLayout] Resetting any stale logout flags");
+      console.log("[DashboardLayout] Resetting any stale logout flags");
       dispatch(resetLogoutProcess());
 
       if (resetLoginState) {

@@ -42,7 +42,7 @@ export const PROTECTED_ROUTES: RouteAuthConfig[] = [
     description: "Admin Pages - Protected",
   },
   {
-    path: "/todos",
+    path: "/dashboard/todos",
     authType: RouteAuthType.PROTECTED,
     description: "Todos - Protected",
   },

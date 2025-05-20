@@ -55,9 +55,9 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     const isAuthenticated = await context.isAuthenticated();
     if (isAuthenticated) {
       console.log(
-        "[Login Loader] User already authenticated, redirecting to about page"
+        "[Login Loader] User already authenticated, redirecting to dashboard page"
       );
-      return redirect("/about");
+      return redirect("/dashboard");
     }
     // if not authenticated
     return null;
@@ -98,7 +98,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     console.log("Login successful, preparing redirect");
 
     const url = new URL(request.url);
-    const redirectTo = url.searchParams.get("redirectTo") || "/about";
+    const redirectTo = url.searchParams.get("redirectTo") || "/dashboard";
 
     // Create a Response object that will be modified by react-router-hono-server
     const redirectResponse = redirect(redirectTo);
@@ -125,7 +125,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 export default function Login() {
   const actionData = useActionData<ActionData>();
   const [searchParams] = useSearchParams();
-  const redirectTo = searchParams.get("redirectTo") || "/about";
+  const redirectTo = searchParams.get("redirectTo") || "/dashboard";
   const [isPasswordVisible, setIsPasswordVisible] = useState<boolean>(false);
   const navigate = useNavigate();
   const dispatch = useDispatch();
