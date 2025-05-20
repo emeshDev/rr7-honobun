@@ -7,6 +7,8 @@ import { setupCsrfMiddleware } from "./csrfMiddleware";
 import { setupSecureHeadersMiddleware } from "./secureHeadersMiddleware";
 import { setupGoogleOAuthMiddleware } from "./googleOAuthMiddleware";
 import { setupGoogleOAuthDebug } from "./googleOAuthDebugMiddleware";
+import { setupRateLimitMiddleware } from "./rateLimitMiddleware";
+import { setupMemoryRateLimitMiddleware } from "./memoryRateLimitMiddleware";
 
 export const setupMiddlewares = (app: Hono) => {
   // Setup secure headers middleware (should be first)
@@ -22,6 +24,10 @@ export const setupMiddlewares = (app: Hono) => {
   // Penting: ini sekarang mendaftarkan route handler dan middleware
   // bukan hanya endpoint debug saja
   // setupGoogleOAuthDebug(app);
+
+  // Rate limit
+  // setupRateLimitMiddleware(app);
+  setupMemoryRateLimitMiddleware(app);
 
   // Setup CSRF Middleware
   setupCsrfMiddleware(app);
