@@ -633,6 +633,163 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     resetLoginState,
   ]);
 
+  // Enhancement to check auth in storage
+  // Enhanced validateAuthState function
+  const validateAuthState = useCallback(() => {
+    // Skip validation if not authenticated or during logout
+    if (!isAuthenticated || isLoggingOut || logoutInProgress) return;
+
+    // VALIDATION 1: Check if auth cookie exists - most important check!
+    const hasAuthCookieNow = hasAuthCookie();
+    if (!hasAuthCookieNow) {
+      console.log(
+        "[AuthProvider] Auth cookie missing but user in state, clearing credentials"
+      );
+      dispatch(clearCredentials());
+      return;
+    }
+
+    // VALIDATION 2: Check if expiresAt is reasonable
+    if (expiresAt) {
+      const expiryTime = new Date(expiresAt).getTime();
+      const now = Date.now();
+
+      // Case 1: If expired but cookie exists, something's wrong
+      if (expiryTime <= now) {
+        console.log(
+          "[AuthProvider] Auth state expired but cookie exists, refreshing token"
+        );
+        manualRefreshToken().catch((err) => {
+          console.error(
+            "[AuthProvider] Refresh failed during expired validation:",
+            err
+          );
+          // Force a /me call to verify if we're still authenticated
+          refetchMe().catch((meErr) => {
+            console.error(
+              "[AuthProvider] ME verification failed after refresh error:",
+              meErr
+            );
+            // If all attempts fail, clear credentials
+            dispatch(clearCredentials());
+          });
+        });
+        return;
+      }
+
+      // Case 2: If expiry is too far in the future (> 20 min), it's suspicious
+      // (tokens only last 15 min in your system)
+      if (expiryTime > now + 20 * 60 * 1000) {
+        console.log(
+          "[AuthProvider] Suspicious future expiresAt detected, syncing with server"
+        );
+        // Force a full revalidation
+        refetchMe().catch((err) => {
+          console.error("[AuthProvider] Revalidation error:", err);
+        });
+        return;
+      }
+
+      // Case 3: If close to expiry (< 3 min), preemptively refresh
+      if (expiryTime - now < 3 * 60 * 1000) {
+        console.log(
+          "[AuthProvider] Token close to expiry, triggering preemptive refresh"
+        );
+        manualRefreshToken().catch((err) => {
+          console.error("[AuthProvider] Preemptive refresh failed:", err);
+        });
+        return;
+      }
+    }
+
+    // VALIDATION 3: If no expiresAt but we have user and cookie, something's wrong
+    if (!expiresAt && user && hasAuthCookieNow) {
+      console.log(
+        "[AuthProvider] User in state but no expiresAt, syncing with server"
+      );
+      refetchMe().catch((err) => {
+        console.error("[AuthProvider] Error syncing missing expiresAt:", err);
+      });
+    }
+  }, [
+    isAuthenticated,
+    expiresAt,
+    user,
+    isLoggingOut,
+    logoutInProgress,
+    dispatch,
+    manualRefreshToken,
+    refetchMe,
+  ]);
+
+  // Add this effect to detect storage changes to catch manual editing
+  useEffect(() => {
+    // Only run in browser environment
+    if (typeof window === "undefined") return;
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "reduxState" && e.newValue !== e.oldValue) {
+        console.log("[AuthProvider] Redux state changed in sessionStorage");
+
+        // Handle both same-tab changes and cross-tab changes
+        try {
+          const newState = e.newValue ? JSON.parse(e.newValue) : null;
+          const oldState = e.oldValue ? JSON.parse(e.oldValue) : null;
+
+          if (newState?.auth?.expiresAt !== oldState?.auth?.expiresAt) {
+            console.log(
+              "[AuthProvider] expiresAt changed in storage, validating state"
+            );
+
+            // Short timeout to let any other related changes settle
+            setTimeout(validateAuthState, 100);
+          }
+        } catch (err) {
+          console.error("[AuthProvider] Error parsing storage change:", err);
+        }
+      }
+    };
+
+    // This will catch cross-tab changes
+    window.addEventListener("storage", handleStorageChange);
+
+    // For same-tab changes, we'll use sessionStorage monitoring
+    const originalSetItem = sessionStorage.setItem;
+    sessionStorage.setItem = function (key, value) {
+      // Call original function
+      originalSetItem.apply(this, [key, value]);
+
+      // If changing reduxState, check for auth changes
+      if (key === "reduxState") {
+        try {
+          const oldStateStr = sessionStorage.getItem("_prev_reduxState");
+          const oldState = oldStateStr ? JSON.parse(oldStateStr) : null;
+          const newState = value ? JSON.parse(value) : null;
+
+          if (newState?.auth?.expiresAt !== oldState?.auth?.expiresAt) {
+            console.log(
+              "[AuthProvider] expiresAt changed in same-tab storage, validating"
+            );
+            setTimeout(validateAuthState, 100);
+          }
+
+          // Store current state for future comparison
+          sessionStorage.setItem("_prev_reduxState", value);
+        } catch (err) {
+          console.error(
+            "[AuthProvider] Error in sessionStorage override:",
+            err
+          );
+        }
+      }
+    };
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      // Restore original
+      sessionStorage.setItem = originalSetItem;
+    };
+  }, [validateAuthState]);
   // Buat value untuk context
   const contextValue: AuthContextValue = {
     user,

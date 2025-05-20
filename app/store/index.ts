@@ -7,6 +7,7 @@ import { setupListeners } from "@reduxjs/toolkit/query";
 import { api } from "./api";
 import { authApi, hasAuthCookie } from "./authApi";
 import authReducer from "./authSlice";
+import { getAuthCookieExpiry } from "~/utils/cookieExpiryCheck";
 
 // Deteksi environment
 const isServer = typeof window === "undefined";
@@ -41,33 +42,32 @@ export const store = configureStore({
 // Coba muat state dari sessionStorage atau window.__PRELOADED_STATE__
 function loadState() {
   try {
-    // Di server, selalu return undefined
+    // On server, always return undefined
     if (typeof window === "undefined") return undefined;
 
     console.log("[Store] Checking for preloaded state...");
 
-    // Di client, pertama cek preloaded state dari window
+    // First check for preloaded state from window
     if (window.__PRELOADED_STATE__) {
       console.log("[Store] Found preloaded state from server");
       const preloadedState = window.__PRELOADED_STATE__;
-
-      // Hapus dari window untuk mengurangi memory footprint
       delete window.__PRELOADED_STATE__;
-
       return preloadedState;
     }
 
     console.log("[Store] No preloaded state, checking sessionStorage");
 
-    // Fallback ke sessionStorage jika tidak ada preloaded state
+    // Fallback to sessionStorage
     const serializedState = sessionStorage.getItem("reduxState");
     if (!serializedState) return undefined;
 
     const parsedState = JSON.parse(serializedState);
 
-    // Verifikasi state auth dengan keberadaan cookie
+    // VALIDATION 1: If we have user in state but no auth cookie, clear auth state
     if (parsedState.auth?.user && !hasAuthCookie()) {
-      console.log("Auth state found but no auth cookie, clearing auth state");
+      console.log(
+        "[Store] Auth state found but no auth cookie, clearing auth state"
+      );
       return {
         ...parsedState,
         auth: {
@@ -76,13 +76,60 @@ function loadState() {
           isLoading: false,
           source: null,
           logoutInProgress: false,
+          refreshInProgress: false,
+          lastRefreshAttempt: null,
+          lastSuccessfulRefresh: null,
         },
       };
     }
 
+    // VALIDATION 2: If we have auth state and cookie, verify expiresAt is reasonable
+    if (
+      parsedState.auth?.user &&
+      hasAuthCookie() &&
+      parsedState.auth.expiresAt
+    ) {
+      const expiryTime = new Date(parsedState.auth.expiresAt).getTime();
+      const now = Date.now();
+
+      // Flag suspicious cases:
+      // 1. If expiry is more than 20 minutes in future (tokens only last 15 min)
+      // 2. If expired but cookie exists
+      // 3. If expiry is unreasonably far in the past
+      const isSuspiciousExpiry =
+        expiryTime > now + 20 * 60 * 1000 || // too far in future
+        (expiryTime < now && hasAuthCookie()) || // expired but cookie exists
+        expiryTime < now - 60 * 60 * 1000; // unreasonably far in past
+
+      if (isSuspiciousExpiry) {
+        console.log(
+          "[Store] Suspicious expiresAt detected in sessionStorage:",
+          new Date(expiryTime).toLocaleString()
+        );
+
+        // Get a reliable expiresAt estimate based on cookie
+        const cookieExpiry = getAuthCookieExpiry();
+
+        if (cookieExpiry) {
+          console.log(
+            "[Store] Correcting expiresAt with cookie-based value:",
+            new Date(cookieExpiry).toLocaleString()
+          );
+
+          return {
+            ...parsedState,
+            auth: {
+              ...parsedState.auth,
+              expiresAt: cookieExpiry,
+            },
+          };
+        }
+      }
+    }
+
     return parsedState;
   } catch (e) {
-    console.warn("Failed to load state from sessionStorage:", e);
+    console.warn("[Store] Failed to load state from sessionStorage:", e);
     return undefined;
   }
 }

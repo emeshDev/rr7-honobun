@@ -141,6 +141,34 @@ export async function action({ request, context }: Route.ActionArgs) {
   return { success: false, message: "Invalid intent" };
 }
 
+export async function clientLoader({
+  request,
+  context,
+  serverLoader,
+}: Route.ClientLoaderArgs) {
+  // Get data that was rendered from the server and simply pass it through
+  // This avoids making a duplicate API call
+  return serverLoader();
+}
+
+clientLoader.hydrate = true as const;
+
+// Create a loading spinner component
+function LoadingSpinner() {
+  return (
+    <div className="flex items-center justify-center py-10">
+      <div className="h-12 w-12 animate-spin rounded-full border-4 border-indigo-200 border-t-indigo-600"></div>
+      <span className="ml-3 text-lg font-medium text-indigo-600">
+        Loading todos...
+      </span>
+    </div>
+  );
+}
+
+export function HydrateFallback() {
+  return <LoadingSpinner />;
+}
+
 // Format date for display
 function formatDate(dateString: string | null): string {
   if (!dateString) return "";

@@ -3,6 +3,7 @@ import { createAction, createSlice } from "@reduxjs/toolkit";
 import type { PayloadAction } from "@reduxjs/toolkit";
 import type { User } from "~/db/schema";
 import { authApi } from "./authApi";
+import { getAuthCookieExpiry } from "~/utils/cookieExpiryCheck";
 
 // Create action untuk mengubah logout status
 export const setLogoutInProgress = createAction<boolean>(
@@ -62,7 +63,25 @@ export const authSlice = createSlice({
       // Reset logout in progress flag on successful login
       state.logoutInProgress = false;
       state.user = action.payload.user;
-      state.expiresAt = action.payload.expiresAt;
+      // Get the cookie-based expiry time for consistency
+      const cookieExpiry = getAuthCookieExpiry();
+
+      // IMPORTANT: Validate expiresAt against cookie
+      if (cookieExpiry) {
+        // If we can determine cookie expiry, use it to ensure consistency
+        state.expiresAt = cookieExpiry;
+        console.log(
+          "[Auth Slice] Using cookie-based expiry:",
+          new Date(cookieExpiry).toLocaleString()
+        );
+      } else {
+        // Otherwise use the provided expiresAt
+        state.expiresAt = action.payload.expiresAt;
+        console.log(
+          "[Auth Slice] Using provided expiry:",
+          new Date(action.payload.expiresAt).toLocaleString()
+        );
+      }
       state.source = action.payload.source || "client";
 
       // Update last successful refresh

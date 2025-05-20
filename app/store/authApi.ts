@@ -45,7 +45,7 @@ export interface RefreshResponse {
 // Definisikan dummy user untuk case non-authenticated
 // Ini penting untuk menghindari type error dengan null values
 const DUMMY_USER: Omit<User, "passwordHash"> = {
-  id: -1,
+  id: "uuid",
   email: "",
   firstName: null,
   lastName: null,
@@ -121,6 +121,25 @@ export const authApi = createApi({
 
         // If response is valid and success is true, return it
         if (response && response.success && response.user) {
+          // IMPORTANT: Update lastSuccessfulAuth in sessionStorage
+          // This helps us validate if state was manually tampered with
+          if (typeof window !== "undefined") {
+            try {
+              window.sessionStorage.setItem(
+                "lastSuccessfulAuth",
+                JSON.stringify({
+                  time: new Date().toISOString(),
+                  userId: response.user.id,
+                  expiryTime:
+                    response.expiresAt ||
+                    new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+                })
+              );
+            } catch (err) {
+              console.error("Failed to update lastSuccessfulAuth:", err);
+            }
+          }
+
           return {
             success: true,
             user: response.user,
@@ -313,8 +332,18 @@ export const { useMeQuery, useLogoutMutation, useRefreshMutation } = authApi;
 
 // Export utility function untuk memeriksa keberadaan auth cookie
 export function hasAuthCookie() {
-  return (
-    typeof document !== "undefined" &&
-    document.cookie.split(";").some((c) => c.trim().startsWith("auth_status="))
-  );
+  if (typeof document === "undefined") return false;
+
+  const cookies = document.cookie;
+  if (!cookies) return false;
+
+  // Periksa semua cookie auth yang mungkin dengan case insensitive
+  return cookies.split(";").some((c) => {
+    const trimmed = c.trim().toLowerCase();
+    return (
+      trimmed.startsWith("auth_status=") ||
+      trimmed.startsWith("access_token=") ||
+      trimmed.startsWith("refresh_token=")
+    );
+  });
 }

@@ -39,7 +39,7 @@ type ActionData = {
   success?: boolean;
   error?: string;
   user?: {
-    id: number;
+    id: string;
     email: string;
     firstName?: string;
     lastName?: string;
@@ -76,7 +76,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   try {
     // Direct API call untuk menangani cookies dengan benar
     // fetch di sisi server
-    const apiUrl = process.env.BASE_URL;
+    const apiUrl = process.env.APP_URL;
     console.log("Login attempt via server action with:", email);
 
     const response = await fetch(`${apiUrl}/api/auth/login`, {
