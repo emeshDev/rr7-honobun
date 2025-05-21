@@ -251,36 +251,141 @@ export default async function handleRequest(
   } catch (streamError) {
     console.error("[Server] Stream error:", streamError);
 
-    // IMPROVEMENT 7: Fallback response for stream errors
-    responseHeaders.set("Content-Type", "text/html");
+    // Log error secara terperinci untuk debugging tapi tidak untuk response
+    console.error(
+      "[Server] Error details:",
+      streamError instanceof Error
+        ? {
+            name: streamError.name,
+            message: streamError.message,
+            // Jangan log stack trace di production
+            stack:
+              process.env.NODE_ENV === "development"
+                ? streamError.stack
+                : undefined,
+          }
+        : streamError
+    );
 
-    // Simple fallback HTML that will redirect client to the login page
-    const fallbackHtml = `
-      <!DOCTYPE html>
-      <html lang="en">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Loading...</title>
-        <script>
-          // Redirect to login after a short delay
-          setTimeout(function() {
-            window.location.href = "/login";
-          }, 100);
-        </script>
-      </head>
-      <body>
-        <div style="display: flex; justify-content: center; align-items: center; height: 100vh;">
-          <p>Loading application...</p>
-        </div>
-      </body>
-      </html>
-    `;
+    // Deteksi formData error dengan lebih robust
+    const isFormDataError = (() => {
+      if (!(streamError instanceof Error)) return false;
 
-    return new Response(fallbackHtml, {
-      headers: responseHeaders,
-      status: 200, // Use 200 for the fallback
-    });
+      const errorMessage = String(streamError.message).toLowerCase();
+      const errorStack = String(streamError.stack || "").toLowerCase();
+      const errorName = String(streamError.name || "");
+
+      return (
+        errorMessage.includes("form data") ||
+        errorMessage.includes("mime type") ||
+        errorMessage.includes("boundary") ||
+        errorMessage.includes("formdata") ||
+        errorName === "err_formdata_parse_error" ||
+        errorStack.includes("formdata")
+      );
+    })();
+
+    // Set status code yang sesuai
+    const statusCode = isFormDataError ? 400 : 500;
+
+    // Menentukan tipe konten berdasarkan Accept header
+    const acceptHeader = request.headers.get("Accept") || "";
+    let isJsonResponse = acceptHeader.includes("application/json");
+
+    // Jika ini adalah permintaan ke endpoint .data, selalu kembalikan JSON
+    if (request.url.includes(".data")) {
+      isJsonResponse = true;
+    }
+
+    if (isJsonResponse) {
+      // Response JSON untuk endpoint API
+      responseHeaders.set("Content-Type", "application/json");
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: isFormDataError
+            ? "Invalid form submission"
+            : "Internal server error",
+          errors: {
+            _form: [
+              isFormDataError
+                ? "The form was submitted with an invalid format. Please try again using the form provided on the website."
+                : "An unexpected error occurred. Please try again later.",
+            ],
+          },
+        }),
+        {
+          headers: responseHeaders,
+          status: statusCode,
+        }
+      );
+    } else {
+      // HTML fallback untuk browser
+      responseHeaders.set("Content-Type", "text/html");
+
+      // Simple fallback HTML
+      const fallbackHtml = `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>${isFormDataError ? "Invalid Request" : "Server Error"}</title>
+          <style>
+            body { 
+              font-family: system-ui, -apple-system, sans-serif;
+              display: flex; 
+              justify-content: center; 
+              align-items: center; 
+              height: 100vh; 
+              margin: 0;
+              background-color: #f9fafb;
+            }
+            .error-container {
+              text-align: center;
+              padding: 2rem;
+              border-radius: 0.5rem;
+              box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+              max-width: 500px;
+              width: 100%;
+              background-color: white;
+            }
+            h1 { color: #4338ca; margin-bottom: 0.5rem; }
+            p { color: #4b5563; margin-bottom: 1.5rem; }
+            button {
+              background-color: #4f46e5;
+              color: white;
+              border: none;
+              padding: 0.5rem 1rem;
+              border-radius: 0.25rem;
+              cursor: pointer;
+            }
+            button:hover { background-color: #4338ca; }
+          </style>
+        </head>
+        <body>
+          <div class="error-container">
+            <h1>${isFormDataError ? "Invalid Request" : "Server Error"}</h1>
+            <p>${
+              isFormDataError
+                ? "The form was submitted incorrectly. Please return to the form page and try again."
+                : "An unexpected error occurred. Our team has been notified."
+            }</p>
+            <button onclick="window.location.href='${
+              isFormDataError ? "/register" : "/"
+            }'">
+              ${isFormDataError ? "Return to Registration" : "Return to Home"}
+            </button>
+          </div>
+        </body>
+        </html>
+      `;
+
+      return new Response(fallbackHtml, {
+        headers: responseHeaders,
+        status: statusCode,
+      });
+    }
   }
 }
 

@@ -6,9 +6,9 @@ import { authMiddleware } from "./authMiddleware";
 import { setupCsrfMiddleware } from "./csrfMiddleware";
 import { setupSecureHeadersMiddleware } from "./secureHeadersMiddleware";
 import { setupGoogleOAuthMiddleware } from "./googleOAuthMiddleware";
-import { setupGoogleOAuthDebug } from "./googleOAuthDebugMiddleware";
 // import { setupRateLimitMiddleware } from "./rateLimitMiddleware";
 import { setupMemoryRateLimitMiddleware } from "./memoryRateLimitMiddleware";
+import { formDataErrorMiddleware } from "./formDataMiddleware";
 
 export const setupMiddlewares = (app: Hono) => {
   // Setup secure headers middleware (should be first)
@@ -19,6 +19,9 @@ export const setupMiddlewares = (app: Hono) => {
 
   // Setup CORS middleware
   setupCorsMiddleware(app);
+
+  // Setup formData error middleware (sebelum middleware yang menggunakan formData)
+  app.use("*", formDataErrorMiddleware);
 
   // Setup debug endpoints
   // Penting: ini sekarang mendaftarkan route handler dan middleware

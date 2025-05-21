@@ -11,6 +11,7 @@ import {
 } from "react-router";
 import { useState } from "react";
 import type { Route } from "./+types/register";
+import SuspenseWrapper from "~/components/suspense/SuspenseWrapper";
 
 // Zod schema for form validation
 const registerSchema = z.object({
@@ -62,17 +63,42 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 
 // Server Action for registration using AppLoadContext
 export async function action({ request, context }: Route.ActionArgs) {
-  const formData = await request.formData();
+  // Tangkap error dari request.formData() secara eksplisit
+  let formData;
+  try {
+    formData = await request.formData();
+  } catch (formError) {
+    console.error("[Register Action] Form data parsing error:", formError);
 
-  // Extract form data
+    // Lempar response khusus untuk form parsing error
+    throw new Response(
+      JSON.stringify({
+        success: false,
+        formError: true, // Flag untuk identifikasi
+        message: "Invalid form submission format",
+        errors: {
+          _form: [
+            "The form data could not be processed. Please submit the form properly using the registration page.",
+          ],
+        },
+      }),
+      {
+        status: 400, // Bad Request untuk error format
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+  }
+
+  // Ekstrak data form (formData pasti ada di sini)
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
   const firstName = (formData.get("firstName") as string) || undefined;
   const lastName = (formData.get("lastName") as string) || undefined;
-  // Fix: Convert 'on' value from checkbox to boolean
   const agreeTerms = formData.get("agreeTerms") === "on";
 
-  // Basic validation
+  // Validasi dasar (sama seperti sebelumnya)
   if (!email || !password || !agreeTerms) {
     return {
       success: false,
@@ -97,7 +123,7 @@ export async function action({ request, context }: Route.ActionArgs) {
       lastName: lastName || undefined,
     });
 
-    // Handle successful registration
+    // Handle successful registration (sama seperti sebelumnya)
     if (result.success) {
       console.log(`[Register Action] Registration successful for: ${email}`);
 
@@ -112,21 +138,34 @@ export async function action({ request, context }: Route.ActionArgs) {
       return redirect("/login?registered=true");
     }
 
-    // Registration failed with errors
+    // Registration failed with errors (sama seperti sebelumnya)
     return {
       success: false,
       message: result.message || "Registration failed",
       errors: result.errors,
     };
   } catch (error) {
+    // Error selain form parsing error (di dalam proses registrasi)
     console.error("[Register Action] Error during registration:", error);
-    return {
-      success: false,
-      message: error instanceof Error ? error.message : "Registration failed",
-      errors: {
-        _form: ["An unexpected error occurred. Please try again."],
-      },
-    };
+
+    // Throw response untuk error registrasi umum
+    throw new Response(
+      JSON.stringify({
+        success: false,
+        message: "Registration failed",
+        errors: {
+          _form: [
+            "An error occurred during registration. Please try again later.",
+          ],
+        },
+      }),
+      {
+        status: 500, // Internal server error untuk kesalahan registrasi
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
   }
 }
 
@@ -170,241 +209,270 @@ export default function Register() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50">
-      <div className="w-full max-w-md">
-        <div className="rounded-lg bg-white px-8 py-10 shadow-md">
-          <div className="mb-6 text-center">
-            <h1 className="text-3xl font-bold text-gray-900">Create Account</h1>
-            <p className="mt-2 text-gray-600">Sign up to get started</p>
-          </div>
-
-          {/* Display errors */}
-          {actionData?.message && !actionData.success && (
-            <div className="mb-4 rounded-md bg-red-50 p-4 text-sm text-red-700">
-              <p>{actionData.message}</p>
-              {actionData.errors?._form && (
-                <ul className="mt-1 list-disc pl-5">
-                  {actionData.errors._form.map((error, i) => (
-                    <li key={i}>{error}</li>
-                  ))}
-                </ul>
-              )}
+    <SuspenseWrapper
+      fallback={<div className="p-4 text-center">Loading...</div>}
+      errorFallback={(error) => (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-md">
+          <h2 className="text-lg font-semibold text-red-800 mb-2">
+            Registration Form Error
+          </h2>
+          <p className="text-sm text-red-700 mb-4">
+            {error.message ||
+              "There was a problem loading the registration form"}
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-3 py-1 bg-red-100 text-red-800 rounded-md text-sm"
+          >
+            Try again
+          </button>
+        </div>
+      )}
+    >
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <div className="w-full max-w-md">
+          <div className="rounded-lg bg-white px-8 py-10 shadow-md">
+            <div className="mb-6 text-center">
+              <h1 className="text-3xl font-bold text-gray-900">
+                Create Account
+              </h1>
+              <p className="mt-2 text-gray-600">Sign up to get started</p>
             </div>
-          )}
 
-          <Form method="post" className="space-y-4" onSubmit={validateForm}>
-            {/* Email field */}
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Email <span className="text-red-500">*</span>
-              </label>
-              <div className="mt-1">
-                <input
-                  id="email"
-                  {...register("email")}
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                />
-                {(errors.email || actionData?.errors?.email) && (
-                  <p className="mt-1 text-xs text-red-600">
-                    {errors.email?.message || actionData?.errors?.email?.[0]}
-                  </p>
+            {/* Display errors */}
+            {actionData?.message && !actionData.success && (
+              <div className="mb-4 rounded-md bg-red-50 p-4 text-sm text-red-700">
+                <p>{actionData.message}</p>
+                {actionData.errors?._form && (
+                  <ul className="mt-1 list-disc pl-5">
+                    {actionData.errors._form.map((error, i) => (
+                      <li key={i}>{error}</li>
+                    ))}
+                  </ul>
                 )}
               </div>
-            </div>
+            )}
 
-            {/* Password field */}
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Password <span className="text-red-500">*</span>
-              </label>
-              <div className="relative mt-1">
-                <input
-                  id="password"
-                  {...register("password")}
-                  name="password"
-                  type={isPasswordVisible ? "text" : "password"}
-                  autoComplete="new-password"
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 pr-10"
-                />
-                <button
-                  type="button"
-                  tabIndex={-1}
-                  className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500"
-                  onClick={() => setIsPasswordVisible(!isPasswordVisible)}
+            <Form method="post" className="space-y-4" onSubmit={validateForm}>
+              {/* Email field */}
+              <div>
+                <label
+                  htmlFor="email"
+                  className="block text-sm font-medium text-gray-700"
                 >
-                  {isPasswordVisible ? (
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      strokeWidth={1.5}
-                      stroke="currentColor"
-                      className="h-5 w-5"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88"
-                      />
-                    </svg>
-                  ) : (
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      strokeWidth={1.5}
-                      stroke="currentColor"
-                      className="h-5 w-5"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"
-                      />
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
-                      />
-                    </svg>
-                  )}
-                </button>
-                {(errors.password || actionData?.errors?.password) && (
-                  <p className="mt-1 text-xs text-red-600">
-                    {errors.password?.message ||
-                      actionData?.errors?.password?.[0]}
-                  </p>
-                )}
-              </div>
-              <div className="mt-4 text-sm">
-                <p className="text-gray-500">Password must:</p>
-                <ul className="ml-4 mt-1 list-disc text-xs text-gray-500">
-                  <li>Be at least 8 characters long</li>
-                  <li>Contain at least one number</li>
-                  <li>Contain at least one special character</li>
-                </ul>
-              </div>
-            </div>
-
-            {/* First name field */}
-            <div>
-              <label
-                htmlFor="firstName"
-                className="block text-sm font-medium text-gray-700"
-              >
-                First Name <span className="text-gray-400">(optional)</span>
-              </label>
-              <div className="mt-1">
-                <input
-                  id="firstName"
-                  {...register("firstName")}
-                  name="firstName"
-                  type="text"
-                  autoComplete="given-name"
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                />
-                {(errors.firstName || actionData?.errors?.firstName) && (
-                  <p className="mt-1 text-xs text-red-600">
-                    {errors.firstName?.message ||
-                      actionData?.errors?.firstName?.[0]}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {/* Last name field */}
-            <div>
-              <label
-                htmlFor="lastName"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Last Name <span className="text-gray-400">(optional)</span>
-              </label>
-              <div className="mt-1">
-                <input
-                  id="lastName"
-                  {...register("lastName")}
-                  name="lastName"
-                  type="text"
-                  autoComplete="family-name"
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                />
-                {(errors.lastName || actionData?.errors?.lastName) && (
-                  <p className="mt-1 text-xs text-red-600">
-                    {errors.lastName?.message ||
-                      actionData?.errors?.lastName?.[0]}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {/* Terms and conditions checkbox */}
-            <div className="flex items-start">
-              <div className="flex h-5 items-center">
-                <input
-                  id="agreeTerms"
-                  {...register("agreeTerms")}
-                  name="agreeTerms"
-                  type="checkbox"
-                  className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                />
-              </div>
-              <div className="ml-3 text-sm">
-                <label htmlFor="agreeTerms" className="text-gray-700">
-                  I agree to the{" "}
-                  <a href="#" className="text-indigo-600 hover:text-indigo-500">
-                    Terms of Service
-                  </a>{" "}
-                  and{" "}
-                  <a href="#" className="text-indigo-600 hover:text-indigo-500">
-                    Privacy Policy
-                  </a>
+                  Email <span className="text-red-500">*</span>
                 </label>
-                {(errors.agreeTerms || actionData?.errors?.agreeTerms) && (
-                  <p className="mt-1 text-xs text-red-600">
-                    {errors.agreeTerms?.message ||
-                      actionData?.errors?.agreeTerms?.[0]}
-                  </p>
-                )}
+                <div className="mt-1">
+                  <input
+                    id="email"
+                    {...register("email")}
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  />
+                  {(errors.email || actionData?.errors?.email) && (
+                    <p className="mt-1 text-xs text-red-600">
+                      {errors.email?.message || actionData?.errors?.email?.[0]}
+                    </p>
+                  )}
+                </div>
               </div>
-            </div>
 
-            {/* Submit button */}
-            <div>
-              <button
-                type="submit"
-                disabled={submitting}
-                className="w-full rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-70"
-              >
-                {submitting ? "Creating account..." : "Create Account"}
-              </button>
-            </div>
-
-            {/* Login link */}
-            <div className="mt-4 text-center text-sm">
-              <p className="text-gray-600">
-                Already have an account?{" "}
-                <button
-                  type="button"
-                  onClick={() => navigate("/login")}
-                  className="text-indigo-600 hover:text-indigo-500"
+              {/* Password field */}
+              <div>
+                <label
+                  htmlFor="password"
+                  className="block text-sm font-medium text-gray-700"
                 >
-                  Sign in
+                  Password <span className="text-red-500">*</span>
+                </label>
+                <div className="relative mt-1">
+                  <input
+                    id="password"
+                    {...register("password")}
+                    name="password"
+                    type={isPasswordVisible ? "text" : "password"}
+                    autoComplete="new-password"
+                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 pr-10"
+                  />
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500"
+                    onClick={() => setIsPasswordVisible(!isPasswordVisible)}
+                  >
+                    {isPasswordVisible ? (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={1.5}
+                        stroke="currentColor"
+                        className="h-5 w-5"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88"
+                        />
+                      </svg>
+                    ) : (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={1.5}
+                        stroke="currentColor"
+                        className="h-5 w-5"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"
+                        />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
+                        />
+                      </svg>
+                    )}
+                  </button>
+                  {(errors.password || actionData?.errors?.password) && (
+                    <p className="mt-1 text-xs text-red-600">
+                      {errors.password?.message ||
+                        actionData?.errors?.password?.[0]}
+                    </p>
+                  )}
+                </div>
+                <div className="mt-4 text-sm">
+                  <p className="text-gray-500">Password must:</p>
+                  <ul className="ml-4 mt-1 list-disc text-xs text-gray-500">
+                    <li>Be at least 8 characters long</li>
+                    <li>Contain at least one number</li>
+                    <li>Contain at least one special character</li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* First name field */}
+              <div>
+                <label
+                  htmlFor="firstName"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  First Name <span className="text-gray-400">(optional)</span>
+                </label>
+                <div className="mt-1">
+                  <input
+                    id="firstName"
+                    {...register("firstName")}
+                    name="firstName"
+                    type="text"
+                    autoComplete="given-name"
+                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  />
+                  {(errors.firstName || actionData?.errors?.firstName) && (
+                    <p className="mt-1 text-xs text-red-600">
+                      {errors.firstName?.message ||
+                        actionData?.errors?.firstName?.[0]}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Last name field */}
+              <div>
+                <label
+                  htmlFor="lastName"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Last Name <span className="text-gray-400">(optional)</span>
+                </label>
+                <div className="mt-1">
+                  <input
+                    id="lastName"
+                    {...register("lastName")}
+                    name="lastName"
+                    type="text"
+                    autoComplete="family-name"
+                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  />
+                  {(errors.lastName || actionData?.errors?.lastName) && (
+                    <p className="mt-1 text-xs text-red-600">
+                      {errors.lastName?.message ||
+                        actionData?.errors?.lastName?.[0]}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Terms and conditions checkbox */}
+              <div className="flex items-start">
+                <div className="flex h-5 items-center">
+                  <input
+                    id="agreeTerms"
+                    {...register("agreeTerms")}
+                    name="agreeTerms"
+                    type="checkbox"
+                    className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                </div>
+                <div className="ml-3 text-sm">
+                  <label htmlFor="agreeTerms" className="text-gray-700">
+                    I agree to the{" "}
+                    <a
+                      href="#"
+                      className="text-indigo-600 hover:text-indigo-500"
+                    >
+                      Terms of Service
+                    </a>{" "}
+                    and{" "}
+                    <a
+                      href="#"
+                      className="text-indigo-600 hover:text-indigo-500"
+                    >
+                      Privacy Policy
+                    </a>
+                  </label>
+                  {(errors.agreeTerms || actionData?.errors?.agreeTerms) && (
+                    <p className="mt-1 text-xs text-red-600">
+                      {errors.agreeTerms?.message ||
+                        actionData?.errors?.agreeTerms?.[0]}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Submit button */}
+              <div>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="w-full rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-70"
+                >
+                  {submitting ? "Creating account..." : "Create Account"}
                 </button>
-              </p>
-            </div>
-          </Form>
+              </div>
+
+              {/* Login link */}
+              <div className="mt-4 text-center text-sm">
+                <p className="text-gray-600">
+                  Already have an account?{" "}
+                  <button
+                    type="button"
+                    onClick={() => navigate("/login")}
+                    className="text-indigo-600 hover:text-indigo-500"
+                  >
+                    Sign in
+                  </button>
+                </p>
+              </div>
+            </Form>
+          </div>
         </div>
       </div>
-    </div>
+    </SuspenseWrapper>
   );
 }

@@ -132,6 +132,46 @@ export default await createHonoServer({
     app.onError((err, c) => {
       console.error("[Hono] Global error:", err);
 
+      // Cek apakah error berkaitan dengan form data parsing
+      const isFormDataError =
+        err instanceof Error &&
+        (err.message.includes("form data") ||
+          err.message.includes("MIME type/boundary") ||
+          err.message.includes("ERR_FORMDATA_PARSE_ERROR") ||
+          (err as any).name === "ERR_FORMDATA_PARSE_ERROR");
+
+      if (isFormDataError) {
+        // Gunakan URL untuk menentukan format respons
+        const url = c.req.url;
+        const isDataEndpoint = url.includes(".data");
+
+        if (isDataEndpoint) {
+          return c.json(
+            {
+              success: false,
+              message: "Invalid form submission",
+              errors: {
+                _form: [
+                  "The form was submitted with an invalid format. Please try again.",
+                ],
+              },
+            },
+            400
+          );
+        } else {
+          // Sama seperti di middleware untuk konsistensi
+          return c.html(
+            `
+          <!DOCTYPE html>
+          <html lang="en">
+          <!-- Form error HTML seperti di middleware -->
+          </html>
+        `,
+            400
+          );
+        }
+      }
+
       // Jika error adalah Response
       if (err instanceof Response) {
         return new Response(err.body, {
@@ -140,12 +180,19 @@ export default await createHonoServer({
         });
       }
 
-      // Default error response
+      // Default error response - sanitized for production
       return c.json(
         {
           success: false,
           message:
-            err instanceof Error ? err.message : "An unexpected error occurred",
+            process.env.NODE_ENV === "development"
+              ? err instanceof Error
+                ? err.message
+                : "An unexpected error occurred"
+              : "Server Error",
+          errors: {
+            _form: ["An unexpected error occurred. Please try again later."],
+          },
         },
         500
       );
