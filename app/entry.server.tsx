@@ -196,7 +196,13 @@ export default async function handleRequest(
       {
         onError(error: unknown) {
           console.error("[Server] Render error:", error);
-          responseStatusCode = 500;
+          // Set responseStatusCode berdasarkan error
+          if (error instanceof Response) {
+            responseStatusCode = error.status;
+          } else {
+            responseStatusCode = 500;
+          }
+
           if (shellRendered) {
             console.error(error);
           }

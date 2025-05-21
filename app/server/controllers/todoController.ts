@@ -3,7 +3,7 @@ import { type Context } from "hono";
 import { eq, and, desc, asc, isNull, like, or } from "drizzle-orm";
 import { z } from "zod";
 
-import { createZodErrorResponse } from "../utils/zodErrors";
+import { throwZodErrorResponse } from "../utils/zodErrors";
 import { db } from "~/db";
 import { todos, type Todo } from "~/db/schema";
 
@@ -78,7 +78,7 @@ export class TodoController {
       });
 
       if (!validationResult.success) {
-        return createZodErrorResponse(validationResult.error);
+        throwZodErrorResponse(validationResult.error);
       }
 
       // Build the query with all conditions
@@ -242,7 +242,7 @@ export class TodoController {
       const validationResult = createTodoSchema.safeParse(body);
 
       if (!validationResult.success) {
-        return createZodErrorResponse(validationResult.error);
+        throwZodErrorResponse(validationResult.error);
       }
 
       const validatedData = validationResult.data;
@@ -323,7 +323,7 @@ export class TodoController {
       const validationResult = updateTodoSchema.safeParse(body);
 
       if (!validationResult.success) {
-        return createZodErrorResponse(validationResult.error);
+        throwZodErrorResponse(validationResult.error);
       }
 
       const validatedData = validationResult.data;

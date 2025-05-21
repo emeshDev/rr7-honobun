@@ -32,7 +32,7 @@ export const setupGoogleOAuthMiddleware = (app: Hono) => {
       client_id: process.env.GOOGLE_CLIENT_ID!,
       client_secret: process.env.GOOGLE_CLIENT_SECRET!,
       scope: ["openid", "email", "profile"],
-      redirect_uri: "https://rr7honobun.emeshdev.com/api/auth/google",
+      redirect_uri: `${process.env.APP_URL}/api/auth/google`,
     }),
     async (c) => {
       try {

@@ -127,6 +127,29 @@ export default await createHonoServer({
 
     // Setup semua API routes
     setupApiRoutes(app);
+
+    // Tambahkan global error handler
+    app.onError((err, c) => {
+      console.error("[Hono] Global error:", err);
+
+      // Jika error adalah Response
+      if (err instanceof Response) {
+        return new Response(err.body, {
+          status: err.status,
+          headers: err.headers,
+        });
+      }
+
+      // Default error response
+      return c.json(
+        {
+          success: false,
+          message:
+            err instanceof Error ? err.message : "An unexpected error occurred",
+        },
+        500
+      );
+    });
   },
 
   getLoadContext(c, options) {

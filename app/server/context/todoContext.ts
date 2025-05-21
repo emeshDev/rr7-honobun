@@ -75,11 +75,18 @@ const createTodoContext = (c: Context) => {
       const mockContext = await getUserContext({ queryParams: options });
 
       if (!mockContext) {
-        return {
-          success: false,
-          message: "Authentication required",
-          status: 401,
-        };
+        throw new Response(
+          JSON.stringify({
+            success: false,
+            message: "Authentication required",
+          }),
+          {
+            status: 401,
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
       }
 
       try {
@@ -113,11 +120,18 @@ const createTodoContext = (c: Context) => {
       const mockContext = await getUserContext();
 
       if (!mockContext) {
-        return {
-          success: false,
-          message: "Authentication required",
-          status: 401,
-        };
+        throw new Response(
+          JSON.stringify({
+            success: false,
+            message: "Authentication required",
+          }),
+          {
+            status: 401,
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
       }
 
       // Tambahkan parameter id ke request
@@ -170,11 +184,18 @@ const createTodoContext = (c: Context) => {
       const mockContext = await getUserContext();
 
       if (!mockContext) {
-        return {
-          success: false,
-          message: "Authentication required",
-          status: 401,
-        };
+        throw new Response(
+          JSON.stringify({
+            success: false,
+            message: "Authentication required",
+          }),
+          {
+            status: 401,
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
       }
 
       // Konversi dan validasi data
@@ -246,13 +267,19 @@ const createTodoContext = (c: Context) => {
       const mockContext = await getUserContext();
 
       if (!mockContext) {
-        return {
-          success: false,
-          message: "Authentication required",
-          status: 401,
-        };
+        throw new Response(
+          JSON.stringify({
+            success: false,
+            message: "Authentication required",
+          }),
+          {
+            status: 401,
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
       }
-
       // Konversi dan validasi data
       const formattedData = {
         ...data,
@@ -314,11 +341,18 @@ const createTodoContext = (c: Context) => {
       const mockContext = await getUserContext();
 
       if (!mockContext) {
-        return {
-          success: false,
-          message: "Authentication required",
-          status: 401,
-        };
+        throw new Response(
+          JSON.stringify({
+            success: false,
+            message: "Authentication required",
+          }),
+          {
+            status: 401,
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
       }
 
       // Tambahkan parameter id ke request
@@ -371,13 +405,19 @@ const createTodoContext = (c: Context) => {
       const mockContext = await getUserContext();
 
       if (!mockContext) {
-        return {
-          success: false,
-          message: "Authentication required",
-          status: 401,
-        };
+        throw new Response(
+          JSON.stringify({
+            success: false,
+            message: "Authentication required",
+          }),
+          {
+            status: 401,
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
       }
-
       // Tambahkan parameter id ke request
       const contextWithParam = {
         ...mockContext,
@@ -420,13 +460,19 @@ const createTodoContext = (c: Context) => {
       const mockContext = await getUserContext();
 
       if (!mockContext) {
-        return {
-          success: false,
-          message: "Authentication required",
-          status: 401,
-        };
+        throw new Response(
+          JSON.stringify({
+            success: false,
+            message: "Authentication required",
+          }),
+          {
+            status: 401,
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
       }
-
       try {
         console.log("[todoContext] Calling TodoController.clearCompletedTodos");
         const result = await TodoController.clearCompletedTodos(mockContext);

@@ -6,7 +6,7 @@ import { z } from "zod";
 import { db } from "~/db";
 import { users, emailVerifications, type User } from "~/db/schema";
 import { EmailService } from "../services/email.service";
-import { createZodErrorResponse } from "../utils/zodErrors";
+import { throwZodErrorResponse } from "../utils/zodErrors";
 
 // Validation schema for registration
 const registerSchema = z.object({
@@ -44,7 +44,7 @@ export class RegistrationController {
       const validationResult = registerSchema.safeParse(body);
 
       if (!validationResult.success) {
-        return createZodErrorResponse(validationResult.error);
+        throwZodErrorResponse(validationResult.error);
       }
 
       const validatedData = validationResult.data;

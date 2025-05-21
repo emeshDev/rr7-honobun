@@ -37,42 +37,75 @@ type LoaderData = {
 
 // Loader function
 export async function loader({ request, context }: Route.LoaderArgs) {
-  // Parse URL search params for filtering
-  const url = new URL(request.url);
-  const status = (url.searchParams.get("status") || "all") as
-    | "all"
-    | "active"
-    | "completed";
-  const search = url.searchParams.get("search") || "";
-  const sortBy = (url.searchParams.get("sortBy") || "createdAt") as
-    | "title"
-    | "priority"
-    | "dueDate"
-    | "createdAt";
-  const sortDirection = (url.searchParams.get("sortDirection") || "desc") as
-    | "asc"
-    | "desc";
+  try {
+    // Parse URL search params for filtering
+    const url = new URL(request.url);
+    const status = (url.searchParams.get("status") || "all") as
+      | "all"
+      | "active"
+      | "completed";
+    const search = url.searchParams.get("search") || "";
+    const sortBy = (url.searchParams.get("sortBy") || "createdAt") as
+      | "title"
+      | "priority"
+      | "dueDate"
+      | "createdAt";
+    const sortDirection = (url.searchParams.get("sortDirection") || "desc") as
+      | "asc"
+      | "desc";
 
-  // Get todos with filtering options
-  const result = await context.todoControllers.getTodos({
-    status,
-    search,
-    sortBy,
-    sortDirection,
-  });
+    // Get todos with filtering options
+    const result = await context.todoControllers.getTodos({
+      status,
+      search,
+      sortBy,
+      sortDirection,
+    });
 
-  if (!result.success) {
+    // Jika tidak sukses, lempar Response dengan status 401 atau 400
+    if (!result.success) {
+      throw new Response(
+        JSON.stringify({
+          message: result.message,
+          errors: result.errors,
+        }),
+        {
+          status: 401, // Gunakan nilai default 401 jika terkait autentikasi
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+    }
+
+    // Return todos and current filter
     return {
-      message: result.message,
-      errors: result.errors,
+      todos: result.todos || [],
+      filter: { status, search, sortBy, sortDirection },
     };
-  }
+  } catch (error) {
+    // Tangani error yang sudah berupa Response
+    if (error instanceof Response) {
+      throw error;
+    }
 
-  // Return todos and current filter
-  return {
-    todos: result.todos || [],
-    filter: { status, search, sortBy, sortDirection },
-  };
+    // Untuk error lainnya
+    console.error("[TodosLoader] Unexpected error:", error);
+    throw new Response(
+      JSON.stringify({
+        message:
+          error instanceof Error
+            ? error.message
+            : "An unexpected error occurred",
+      }),
+      {
+        status: 500,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+  }
 }
 
 // Server Action function

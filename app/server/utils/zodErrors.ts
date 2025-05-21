@@ -7,6 +7,7 @@ import { ZodError } from "zod";
  * @returns A record of field names mapped to arrays of error messages
  */
 export function formatZodErrors(error: ZodError): Record<string, string[]> {
+  // Kode yang sama seperti sebelumnya
   const formattedErrors = error.format();
   const errors: Record<string, string[]> = {};
 
@@ -45,4 +46,27 @@ export function createZodErrorResponse(error: ZodError): {
     errors: formatZodErrors(error),
     status: 400,
   };
+}
+
+/**
+ * Throws a Response with Zod validation errors
+ * @param error The ZodError object from validation result
+ * @throws Response with 400 status and JSON body
+ */
+export function throwZodErrorResponse(error: ZodError): never {
+  const formattedErrors = formatZodErrors(error);
+
+  throw new Response(
+    JSON.stringify({
+      success: false,
+      message: "Validation failed",
+      errors: formattedErrors,
+    }),
+    {
+      status: 400,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
 }
